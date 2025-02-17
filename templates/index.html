@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Roboto", sans-serif;
+      }
+
+      #dropZone {
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        transition: background-color 0.3s ease;
+        width: 200px; /* 가로 사이즈 지정 */
+        height: 200px; /* 세로 사이즈 지정 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        margin-left: 20px; /* 좌측에 여백 추가 */
+      }
+
+      #dropZone.dragover {
+        background-color: #f1f5f9;
+        border-color: #3b82f6;
+      }
+
+      .container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start; /* 위쪽으로 정렬 */
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white shadow-lg rounded-lg p-6 w-full max-w-4xl">
+      <div
+        id="responseView"
+        class="mb-4 p-4 border border-gray-300 rounded-lg h-[500px] overflow-auto"
+      >
+        <p class="text-gray-600">Response view</p>
+        <p class="text-gray-500">PDF 파일이 입력되면 이곳에 답변이 출력됩니다.</p>
+      </div>
+
+      <div class="container mb-4">
+        <textarea
+          id="textInput"
+          class="border border-gray-300 rounded-lg w-full p-4 h-40"
+          placeholder="여기에 텍스트를 입력하세요"
+        ></textarea>
+
+        <div
+          id="dropZone"
+          class="border border-gray-300 rounded-lg text-gray-500"
+        >
+          + PDF 
+        </div>
+      </div>
+
+      <div class="flex justify-center">
+        <button
+          id="sendButton"
+          class="bg-blue-500 text-white px-8 py-4 rounded-lg hover:bg-blue-600"
+        >
+          Send
+        </button>
+        <button
+          id="stopButton"
+          class="bg-red-500 text-white px-8 py-4 rounded-lg hover:bg-red-600 ml-4"
+          disabled
+        >
+          Stop
+        </button>
+      </div>
+    </div>
+
+    <script type="module">
+      let reader; // 스트림을 읽는 reader를 전역 변수로 설정하여 Stop 버튼에서 접근 가능하게 함
+      let stopFlag = false; // 중단 여부를 확인할 플래그
+      let pdfFile; // 업로드된 PDF 파일을 저장할 변수
+
+      // 드래그 앤 드롭 기능 처리
+      const dropZone = document.getElementById("dropZone");
+
+      dropZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("dragover");
+      });
+
+      dropZone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        dropZone.classList.remove("dragover");
+
+        if (event.dataTransfer.files.length) {
+          pdfFile = event.dataTransfer.files[0];
+          if (pdfFile.type === "application/pdf") {
+            dropZone.innerHTML = `<p class="text-gray-600">${pdfFile.name}</p>`;
+          } else {
+            dropZone.innerHTML = `<p class="text-red-500">PDF 파일만 업로드 가능합니다.</p>`;
+          }
+        }
+      });
+
+      async function fetchAnswer() {
+        // PDF 파일이 없고 텍스트가 입력되지 않은 경우
+        const textInputValue = document.getElementById("textInput").value.trim();
+        if (!pdfFile && !textInputValue) {
+          document.getElementById("responseView").innerHTML = `<p class="text-red-500">PDF 파일을 업로드하거나 텍스트를 입력해주세요.</p>`;
+          return;
+        }
+
+        document.getElementById("responseView").innerHTML = `답변을 준비중입니다...`;
+
+        const formData = new FormData();
+        if (pdfFile) {
+          formData.append("pdfFile", pdfFile); // 파일을 FormData에 추가
+        }
+        if (textInputValue) {
+          formData.append("textInput", textInputValue); // 텍스트를 FormData에 추가
+        }
+
+        try {
+          const response = await fetch("http://127.0.0.1:5147/api/questpost", {
+            method: "POST",
+            body: formData, // 파일과 텍스트를 서버로 전송
+          });
+
+          // 스트리밍 응답을 처리하기 위해 reader 사용
+          reader = response.body.getReader();
+          const decoder = new TextDecoder("utf-8");
+          let result = "";
+
+          // Stop 버튼 활성화
+          document.getElementById("stopButton").disabled = false;
+
+          while (true) {
+            if (stopFlag) {
+              // Stop 버튼이 눌리면 중단
+              reader.cancel();
+              document.getElementById("responseView").innerHTML += "\n\n스트리밍이 중단되었습니다.";
+              break;
+            }
+            const { done, value } = await reader.read();
+            if (done) break;
+            result += decoder.decode(value, { stream: true });
+            document.getElementById("responseView").innerHTML = `<pre>${result}</pre>`;
+          }
+        } catch (error) {
+          document.getElementById(
+            "responseView"
+          ).innerHTML = `<p class="text-red-500">Error: ${error.message}</p>`;
+        } finally {
+          // 작업이 완료되면 Stop 버튼 비활성화
+          document.getElementById("stopButton").disabled = true;
+        }
+      }
+
+      async function sendStopFlag() {
+        try {
+          await fetch("http://127.0.0.1:5147/api/stopgenerate", {
+            method: "POST",
+          });
+        } catch (error) {
+          console.error("Error sending stop request:", error);
+        }
+      }
+
+      // Send 버튼 클릭 시 요청을 보냅니다.
+      document.getElementById("sendButton").addEventListener("click", () => {
+        stopFlag = false; // 중단 플래그 초기화
+        fetchAnswer();
+      });
+
+      // Stop 버튼 클릭 시 스트리밍 중단
+      document.getElementById("stopButton").addEventListener("click", () => {
+        stopFlag = true;
+      });
+    </script>
+  </body>
+</html>
