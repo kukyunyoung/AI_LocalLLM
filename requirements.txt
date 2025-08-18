@@ -1,0 +1,11 @@
+python-dotenv
+langchain_community
+unstructured
+pdfminer-six
+pi_heif
+unstructured_inference
+pdf2image
+pdfplumber
+sentence-transformers
+faiss-cpu
+groq

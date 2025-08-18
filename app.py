@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template, Response
 from env.env import get_api_key
 from script.vectorstore import loadFaiss
 from BllossomModule import MakeTable, Conversation
+from script.llamaModule_groq import MakeTable_groq
 
 app = Flask(__name__)
 
@@ -24,10 +25,21 @@ def api():
     response = {"message": f"Hello, {name}!"}
     return jsonify(response)
 
-
+# Groq API를 사용하는 llamaModule_groq.py
 @app.route("/api/questpost", methods=["POST"])
 def api_questpost():
     # #data = request.json
+    text = request.form.get('textInput')
+    data = request.files.get('pdfFile')
+
+    if data:
+        data = data.read()
+
+    return MakeTable_groq(uploadPdf=data)
+
+# 로컬환경에서 사용할 수 있는 BllossomModule.py
+@app.route("/api/questpost2", methods=["POST"])
+def api_questpost2():
     text = request.form.get('textInput')
     data = request.files.get('pdfFile')
 
