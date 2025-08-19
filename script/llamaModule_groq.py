@@ -61,13 +61,18 @@ answer = []
 response = client.chat.completions.create(model=groq_model, messages=( {"role": "system", "content": ""},))
 
 # GROQ API를 사용하여 모델 초기화
-def InitModel(prompt : str):
+def InitModel(prompt : str, inputText:str = ""):
+    message = [
+        {"role": "system", "content": prompt}
+        ]
+    # 대화를위해 사용할 Conversation_groq 함수에서는 inputText를 채워줄것이기 때문에 메시지에 유저 content 추가
+    if inputText:
+        message.append({"role": "user", "content": inputText})
+
     response = client.chat.completions.create(
         temperature=0.5,
         model=groq_model,
-        messages=(
-            {"role": "system", "content": prompt},
-        ),
+        messages=message,
         stream=True,
     )
     return response
@@ -137,6 +142,29 @@ def MakeTable_groq(uploadPdf:bytes):
         endTime = Time.time()
         yield f"소요 시간 : {int(endTime - stt)}초\n"
         yield f"최종 생성된 문장 길이 : {len(''.join(old_table_chunk+new_table+answer))}"
+
+    return Response(stream_with_context(stream(generate())), content_type='text/plain; charset=utf-8')
+
+# `Conversation` 함수 내의 generator 정의
+def Conversation_groq(inputText: str):
+    stt = Time.time()
+    def generate():
+        answer = []
+        filled_prompt = prompt_conversation.format()
+        response = InitModel(filled_prompt, inputText)
+        for chunk in response:
+            delta = getattr(chunk.choices[0].delta, 'content', None)
+            if not delta:
+                continue
+            answer.append(delta)
+            yield delta
+
+        yield "\n\n\n\n"
+
+        # 소요 시간 출력
+        endTime = Time.time()
+        yield f"소요 시간 : {int(endTime - stt)/60}분 {int(endTime - stt)%60}초\n"
+        yield f"최종 생성된 문장 길이 : {len(''.join(answer))}"   
 
     return Response(stream_with_context(stream(generate())), content_type='text/plain; charset=utf-8')
 

@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify, render_template, Response
 from env.env import get_api_key
 from script.vectorstore import loadFaiss
-from BllossomModule import MakeTable, Conversation
-from script.llamaModule_groq import MakeTable_groq
+#from BllossomModule import MakeTable, Conversation
+from script.llamaModule_groq import MakeTable_groq, Conversation_groq
 
 app = Flask(__name__)
 
@@ -34,20 +34,22 @@ def api_questpost():
 
     if data:
         data = data.read()
+        return MakeTable_groq(uploadPdf=data)
+    elif text:
+        return Conversation_groq(inputText=text)
 
-    return MakeTable_groq(uploadPdf=data)
 
 # 로컬환경에서 사용할 수 있는 BllossomModule.py
-@app.route("/api/questpost2", methods=["POST"])
-def api_questpost2():
-    text = request.form.get('textInput')
-    data = request.files.get('pdfFile')
+# @app.route("/api/questpost2", methods=["POST"])
+# def api_questpost2():
+#     text = request.form.get('textInput')
+#     data = request.files.get('pdfFile')
 
-    if data:
-        data = data.read()
-        return MakeTable(data) 
-    elif text:
-        return Conversation(text)
+#     if data:
+#         data = data.read()
+#         return MakeTable(data) 
+#     elif text:
+#         return Conversation(text)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True, port=5147)
