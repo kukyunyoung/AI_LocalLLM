@@ -58,9 +58,6 @@ JSON 파일로 저장 할 수 있는 기능도 만들었습니다.
 
 # pdfReader.py
 
-[Uploading pdfReader.py…]()
-
-
 RAG에서 문서 로드 역할을 합니다.  
 - **pdfToText()**: `pdfplumber` 라이브러리를 사용하여 텍스트를 쭉 읽어 저장합니다.  
 
