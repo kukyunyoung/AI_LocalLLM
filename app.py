@@ -36,7 +36,7 @@ def api_questpost():
         data = data.read()
         return MakeTable_groq(uploadPdf=data)
     elif text:
-        return Conversation_groq(inputText=text)
+        return Conversation_groq(inputText=text, use_rag=True)
 
 
 # 로컬환경에서 사용할 수 있는 BllossomModule.py

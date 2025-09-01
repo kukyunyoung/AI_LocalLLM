@@ -1,6 +1,7 @@
 from flask import Response, stream_with_context
 from langchain.prompts import PromptTemplate
 from script.pdfReader import loadPdftoText, loadDocuPdftoText, pdfToText
+from script.vectorstore import getRetriever
 from groq import Groq
 from os import environ, listdir
 import json, string, random
@@ -52,6 +53,21 @@ prompt_conversation = PromptTemplate.from_template("""
     Please answer the user's questions kindly. 
     당신은 유능한 AI 어시스턴트 입니다. 
     사용자의 질문에 대해 친절하게 답변해주세요.
+    반드시 한국어로 작성 해주세요.
+""")
+
+# RAG 활용 문서기반 대화 생성
+prompt_conversation_rag = PromptTemplate.from_template("""
+    #Requirements:
+    주어진 Context의 내용을 바탕으로 사용자의 질문에 답변해 주세요.
+    모르는 내용은 "제공된 문서에서 확인되지 않습니다."라고 답변해 주세요.
+    근거가 된 핵심 문장(또는 소제목)을 간략히 요약해 첨부해주세요.
+    반드시 한국어로 작성해주세요.
+                                                   
+    #Context:
+    {context}
+    #Question:
+    {question}
 """)
 
 # Groq 클라이언트 설정
@@ -146,12 +162,46 @@ def MakeTable_groq(uploadPdf:bytes):
     return Response(stream_with_context(stream(generate())), content_type='text/plain; charset=utf-8')
 
 # `Conversation` 함수 내의 generator 정의
-def Conversation_groq(inputText: str):
+# def Conversation_groq(inputText: str):
+#     stt = Time.time()
+#     def generate():
+#         answer = []
+#         filled_prompt = prompt_conversation.format()
+#         response = InitModel(filled_prompt, inputText)
+#         for chunk in response:
+#             delta = getattr(chunk.choices[0].delta, 'content', None)
+#             if not delta:
+#                 continue
+#             answer.append(delta)
+#             yield delta
+
+#         yield "\n\n\n\n"
+
+#         # 소요 시간 출력
+#         endTime = Time.time()
+#         yield f"소요 시간 : {int(endTime - stt)/60}분 {int(endTime - stt)%60}초\n"
+#         yield f"최종 생성된 문장 길이 : {len(''.join(answer))}"   
+
+#     return Response(stream_with_context(stream(generate())), content_type='text/plain; charset=utf-8')
+
+# llamaModule_groq.py (일부 수정)  :contentReference[oaicite:13]{index=13}
+def Conversation_groq(inputText: str, use_rag: bool = True, k: int = 4):
     stt = Time.time()
     def generate():
         answer = []
-        filled_prompt = prompt_conversation.format()
-        response = InitModel(filled_prompt, inputText)
+        if use_rag:
+            retriever = getRetriever()          # mmr retriever  :contentReference[oaicite:14]{index=14}
+            docs = retriever.get_relevant_documents(inputText)[:k]
+            context = "\n\n".join(d.page_content for d in docs)
+            filled_prompt = prompt_conversation_rag.format(
+                context=context, question=inputText
+            )
+        else:
+            filled_prompt = prompt_conversation.format()  # 기존 일반 대화  :contentReference[oaicite:15]{index=15}
+
+        response = InitModel(filled_prompt, "" if use_rag else inputText)
+        # use_rag인 경우 question은 system 프롬프트에 넣었으니 user 메시지는 비움
+
         for chunk in response:
             delta = getattr(chunk.choices[0].delta, 'content', None)
             if not delta:
@@ -160,13 +210,12 @@ def Conversation_groq(inputText: str):
             yield delta
 
         yield "\n\n\n\n"
-
-        # 소요 시간 출력
         endTime = Time.time()
         yield f"소요 시간 : {int(endTime - stt)/60}분 {int(endTime - stt)%60}초\n"
-        yield f"최종 생성된 문장 길이 : {len(''.join(answer))}"   
+        yield f"최종 생성된 문장 길이 : {len(''.join(answer))}"
 
     return Response(stream_with_context(stream(generate())), content_type='text/plain; charset=utf-8')
+
 
 # 목차와 세부사항들 JSON 파일로 저장
 def SaveJson(data:list):

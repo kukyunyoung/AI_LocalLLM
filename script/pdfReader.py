@@ -1,4 +1,5 @@
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from env.env import os_listdir, os_path_join
 from unstructured.partition.pdf import partition_pdf
 import pdfplumber, io
@@ -21,6 +22,20 @@ def show_metadata(docs):
         max_key_length = max(len(k) for k in docs[0].metadata.keys())
         for k, v in docs[0].metadata.items():
             print(f"{k:<{max_key_length}} : {v}")
+
+def loadUnstructuredPdfToText():
+    DIRECTORY_PATH = "pdf/"
+    texts = []
+
+    for filename in os_listdir(DIRECTORY_PATH):
+        if filename.endswith(".pdf"):
+            print(f"Loading {filename}...")
+            file_path = os_path_join(DIRECTORY_PATH, filename)
+            loader = UnstructuredPDFLoader(file_path, mode="elements", strategy="hi_res", languages=["kor","eng"])
+            docs = loader.load()
+            texts.extend([doc.page_content for doc in docs])
+
+    return texts
 
 def loadPdftoText():
     DIRECTORY_PATH = "pdf/"
