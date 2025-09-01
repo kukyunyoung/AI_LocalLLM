@@ -11,10 +11,8 @@ get_api_key()
 # FAISS 데이터베이스를 로드한다.
 loadFaiss()
 
-
 @app.route("/")
 def home():
-    # return to page/index.html
     return render_template("index.html")
 
 
@@ -28,7 +26,6 @@ def api():
 # Groq API를 사용하는 llamaModule_groq.py
 @app.route("/api/questpost", methods=["POST"])
 def api_questpost():
-    # #data = request.json
     text = request.form.get('textInput')
     data = request.files.get('pdfFile')
 

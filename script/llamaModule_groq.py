@@ -1,6 +1,6 @@
 from flask import Response, stream_with_context
 from langchain.prompts import PromptTemplate
-from script.pdfReader import loadPdftoText, loadDocuPdftoText, pdfToText
+from script.pdfReader import loadPdftoText, loadDocuPdftoText, pdfToText, loadUnstruct_PdfToText
 from script.vectorstore import getRetriever
 from groq import Groq
 from os import environ, listdir
@@ -108,7 +108,7 @@ def MakeTable_groq(uploadPdf:bytes):
     #old_table = []
     global stt
     stt = Time.time()
-    pdf = loadPdftoText()
+    pdf = getRetriever()
     question_text = pdfToText(uploadPdf)
     
     def generate():

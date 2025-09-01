@@ -1,5 +1,4 @@
 from langchain_community.document_loaders import PyPDFLoader, UnstructuredPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from env.env import os_listdir, os_path_join
 from unstructured.partition.pdf import partition_pdf
 import pdfplumber, io
@@ -23,19 +22,27 @@ def show_metadata(docs):
         for k, v in docs[0].metadata.items():
             print(f"{k:<{max_key_length}} : {v}")
 
-def loadUnstructuredPdfToText():
-    DIRECTORY_PATH = "pdf/"
+# UnstructuredPDFLoader < poppler, tesseract 설치 및 환경변수 세팅 필요함
+def loadUnstruct_PdfToText(pdfFile:bytes = None):
+    def loadDocs(texts, file_path):
+        loader = UnstructuredPDFLoader(file_path, languages=["kor","eng"])
+        docs = loader.load()
+        texts.extend([doc.page_content for doc in docs])
+
+    if not pdfFile:
+        DIRECTORY_PATH = "pdf/"
     texts = []
 
-    for filename in os_listdir(DIRECTORY_PATH):
-        if filename.endswith(".pdf"):
-            print(f"Loading {filename}...")
-            file_path = os_path_join(DIRECTORY_PATH, filename)
-            loader = UnstructuredPDFLoader(file_path, languages=["kor","eng"])
-            docs = loader.load()
-            print(docs[0].page_content[:1000])
-            texts.extend([doc.page_content for doc in docs])
-
+    if pdfFile is None:
+        for filename in os_listdir(DIRECTORY_PATH):
+            if filename.endswith(".pdf"):
+                print(f"Loading {filename}...")
+                file_path = os_path_join(DIRECTORY_PATH, filename)
+                loadDocs(texts, file_path)
+    else:
+        print(f"Loading {pdfFile}...")
+        loadDocs(texts, pdfFile)
+        
     return texts
 
 def loadPdftoText():

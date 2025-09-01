@@ -1,6 +1,6 @@
 from langchain_community.vectorstores import FAISS
 from script.textSplitter import split_text
-from script.pdfReader import show_metadata, loadPdftoText, loadUnstructuredPdfToText
+from script.pdfReader import show_metadata, loadPdftoText, loadUnstruct_PdfToText
 from flask import jsonify
 from env.env import os_path_exists
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -16,7 +16,7 @@ embeddings_model = HuggingFaceEmbeddings(
 def initFaiss():
     global faiss_db  # 전역 변수 사용 선언
     #split_docs = split_text(loadPdftoText())
-    split_docs = split_text(loadUnstructuredPdfToText())
+    split_docs = split_text(loadUnstruct_PdfToText())
     print(split_docs)
     # FAISS 를 통해 벡터 저장소 생성
     faiss_db = FAISS.from_documents(split_docs, embeddings_model)
