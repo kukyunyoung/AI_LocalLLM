@@ -7,6 +7,7 @@ from os import environ, listdir
 import json, string, random
 import time as Time
 
+#region 프롬프트
 # 목차 생성
 prompt_makeTable = PromptTemplate.from_template("""
     #Requirements:
@@ -69,9 +70,10 @@ prompt_conversation_rag = PromptTemplate.from_template("""
     #Question:
     {question}
 """)
+#endregion
 
 # Groq 클라이언트 설정
-groq_model = "llama-3.1-8b-instant"
+groq_model = "openai/gpt-oss-20b"
 client = Groq(api_key=environ.get("GROQ_API_KEY")) # GROQ_API_KEY, GROQ_API_KEY2 토큰갯수 넘어가면 바꾸기
 answer = []
 response = client.chat.completions.create(model=groq_model, messages=( {"role": "system", "content": ""},))
@@ -161,30 +163,7 @@ def MakeTable_groq(uploadPdf:bytes):
 
     return Response(stream_with_context(stream(generate())), content_type='text/plain; charset=utf-8')
 
-# `Conversation` 함수 내의 generator 정의
-# def Conversation_groq(inputText: str):
-#     stt = Time.time()
-#     def generate():
-#         answer = []
-#         filled_prompt = prompt_conversation.format()
-#         response = InitModel(filled_prompt, inputText)
-#         for chunk in response:
-#             delta = getattr(chunk.choices[0].delta, 'content', None)
-#             if not delta:
-#                 continue
-#             answer.append(delta)
-#             yield delta
-
-#         yield "\n\n\n\n"
-
-#         # 소요 시간 출력
-#         endTime = Time.time()
-#         yield f"소요 시간 : {int(endTime - stt)/60}분 {int(endTime - stt)%60}초\n"
-#         yield f"최종 생성된 문장 길이 : {len(''.join(answer))}"   
-
-#     return Response(stream_with_context(stream(generate())), content_type='text/plain; charset=utf-8')
-
-# llamaModule_groq.py (일부 수정)  :contentReference[oaicite:13]{index=13}
+# 대화 생성 함수, use_rag : True일 경우에 리트리벌 문서 기반으로 대답
 def Conversation_groq(inputText: str, use_rag: bool = True, k: int = 4):
     stt = Time.time()
     def generate():
@@ -199,8 +178,8 @@ def Conversation_groq(inputText: str, use_rag: bool = True, k: int = 4):
         else:
             filled_prompt = prompt_conversation.format()  # 기존 일반 대화  :contentReference[oaicite:15]{index=15}
 
-        response = InitModel(filled_prompt, "" if use_rag else inputText)
         # use_rag인 경우 question은 system 프롬프트에 넣었으니 user 메시지는 비움
+        response = InitModel(filled_prompt, "" if use_rag else inputText)
 
         for chunk in response:
             delta = getattr(chunk.choices[0].delta, 'content', None)

@@ -31,8 +31,9 @@ def loadUnstructuredPdfToText():
         if filename.endswith(".pdf"):
             print(f"Loading {filename}...")
             file_path = os_path_join(DIRECTORY_PATH, filename)
-            loader = UnstructuredPDFLoader(file_path, mode="elements", strategy="hi_res", languages=["kor","eng"])
+            loader = UnstructuredPDFLoader(file_path, languages=["kor","eng"])
             docs = loader.load()
+            print(docs[0].page_content[:1000])
             texts.extend([doc.page_content for doc in docs])
 
     return texts
