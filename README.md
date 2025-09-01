@@ -154,6 +154,9 @@ RAG에서 **검색, 프롬프트, 모델선택, 결과 생성** 역할을 합니
 
 → 하나의 프롬프트에 모든 작업을 몰아넣는 대신 **단계별 안정성 확보** 방식입니다.  
 
+<img width="872" height="814" alt="pdf_목차생성" src="https://github.com/user-attachments/assets/ee0e4fbd-6692-4bfa-b8ad-a9ddc6f6ac60" />
+
+
 ### Conversation_groq()
 인자로 **사용자 입력 + RAG 사용 여부**를 받습니다.  
 - **RAG=False** → 일반 LLM 응답  
@@ -161,6 +164,10 @@ RAG에서 **검색, 프롬프트, 모델선택, 결과 생성** 역할을 합니
 
 질문 시 임베드된 코사인 유사도와 사용자 질문을 비교 → **점수가 높은 청크만 답변에 사용**  
 점수가 낮으면 "대답하지 않음"으로 설정된 프롬프트 적용  
+
+<img width="879" height="819" alt="리트리벌_관계없음" src="https://github.com/user-attachments/assets/a6cd77a7-2360-46eb-b810-ee09066adb65" />
+<img width="878" height="818" alt="리트리벌_관계" src="https://github.com/user-attachments/assets/a16721c1-c4f6-48a7-8acc-804ecdb07271" />
+
 
 ### 기타
 - **SaveJson() / LoadJson()** → 사용자가 파일 저장/불러오기 가능  
